@@ -25,18 +25,18 @@ def read_wic_si_data(dtm, read_si=True, read_wic=False):
     # Therefore, we do the transpose to fix it. Also we need to
     # rotate the image so that the dayside is on the top
 
-    data_dict["mlt_img"] = dat['imageinfo'].mlt_img[0]
-    data_dict["image"] = dat['imageinfo'].image[0]
-    data_dict["mlat"] = dat['imageinfo'].mlat[0]
-    data_dict["mlon"] = dat['imageinfo'].mlon[0]
-    data_dict["mlt"] = dat['imageinfo'].mlt[0]
+#    data_dict["mlt_img"] = dat['imageinfo'].mlt_img[0]
+#    data_dict["image"] = dat['imageinfo'].image[0]
+#    data_dict["mlat"] = dat['imageinfo'].mlat[0]
+#    data_dict["mlon"] = dat['imageinfo'].mlon[0]
+#    data_dict["mlt"] = dat['imageinfo'].mlt[0]
 
 
-#    data_dict["mlt_img"] = np.flip(dat['imageinfo'].mlt_img[0], axis=0)
-#    data_dict["image"] = np.flip(dat['imageinfo'].image[0], axis=0)
-#    data_dict["mlat"] = np.flip(dat['imageinfo'].mlat[0], axis=0)
-#    data_dict["mlon"] = np.flip(dat['imageinfo'].mlon[0], axis=0)
-#    data_dict["mlt"] = np.flip(dat['imageinfo'].mlt[0], axis=0)
+    data_dict["mlt_img"] = np.flip(dat['imageinfo'].mlt_img[0], axis=0)
+    data_dict["image"] = np.flip(dat['imageinfo'].image[0], axis=0)
+    data_dict["mlat"] = np.flip(dat['imageinfo'].mlat[0], axis=0)
+    data_dict["mlon"] = np.flip(dat['imageinfo'].mlon[0], axis=0)
+    data_dict["mlt"] = np.flip(dat['imageinfo'].mlt[0], axis=0)
 
     return fname_image, data_dict
 
@@ -120,6 +120,16 @@ def plot_max_point_tracks(stm, etm, read_si=True, read_wic=False,
     ax.plot_date(dtms)
 
     return
+
+def iteratively_plot_WIC_SI_image(stm, etm, read_si=True, read_wic=False,
+                                  param="image", mark_max_intensity_point=True,
+                                  mlt_range=[8, 16], mlat_range=[70, 85]):
+
+    dtms, fnames = find_filenames(stm, etm, read_si=read_si, read_wic=read_wic)
+    for dtm in dtms:
+        fig = plot_WIC_SI_image(dtm, read_si=read_si, read_wic=read_wic, param=param)
+        fig.savefig("./plots/track_spot/" + dtm.strftime("%H%M") + "_" + param , dpi=300)
+    return
         
 def plot_WIC_SI_image(dtm, read_si=True, read_wic=False,
                       param="image", mark_max_intensity_point=True,
@@ -157,7 +167,6 @@ def plot_WIC_SI_image(dtm, read_si=True, read_wic=False,
     ax.set_title(title)
 
     cbar = fig.colorbar(cax, shrink=0.7)
-    #fig.savefig("./plots/tmp/" + dtm.strftime("%H%M") + ss_txt[1:] + "_" + param , dpi=300)
     
 #    fig1, ax1 = plt.subplots()
 #    image_data = imfilter(data['image'], 'blur')
@@ -173,20 +182,25 @@ def plot_WIC_SI_image(dtm, read_si=True, read_wic=False,
     #ax.imshow(edge)
     #ax.set_axis_off()
 
-    return
+    return fig
 
 # run the code
-#read_si=True; read_wic=False
-read_si=False; read_wic=True
+read_si=True; read_wic=False
+#read_si=False; read_wic=True
 dtm = dt.datetime(2002, 3, 18, 16, 02) 
 stm = dt.datetime(2002, 3, 18, 16, 02) 
 etm = dt.datetime(2002, 3, 18, 17, 02) 
 fname, data = read_wic_si_data(dtm, read_si=read_si, read_wic=read_wic)
-#plot_WIC_SI_image(dtm, read_si=read_si, read_wic=read_wic, param="image")
+#fig = plot_WIC_SI_image(dtm, read_si=read_si, read_wic=read_wic, param="image")
+iteratively_plot_WIC_SI_image(stm, etm, read_si=read_si, read_wic=read_wic,
+                              param="image", mark_max_intensity_point=True,
+                              mlt_range=[8, 16], mlat_range=[70, 85])
 #find_max_intensity_point(data, mlt_range=[8, 16], mlat_range=[70, 85], plot_image=True)
 #fnames = find_filenames(stm, etm, read_si=True, read_wic=False)
-plot_max_point_tracks(stm, etm, read_si=True, read_wic=False,
-                      mlt_range=[8, 16], mlat_range=[70, 85])
+#plot_max_point_tracks(stm, etm, read_si=True, read_wic=False,
+#                      mlt_range=[8, 16], mlat_range=[70, 85])
 
-plt.show()
+
+
+#plt.show()
 
