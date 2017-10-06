@@ -6,6 +6,7 @@ def plot_max_point_path(stm, etm, read_si=True, read_wic=False, param="mlt",
     from track_max_point import find_max_intensity_point
     from matplotlib.dates import DateFormatter
     import matplotlib.pyplot as plt
+    import numpy as np        
 
     fig, ax = plt.subplots()
 
@@ -56,23 +57,41 @@ def plot_max_point_path(stm, etm, read_si=True, read_wic=False, param="mlt",
         sys.path.append('/home/muhammad/Documents/Important/RISRpy/RISR_06222015/codes')
         from read_sw_imf import ace_read
         df_imf, df_sw =  ace_read(stm, etm, res=0, how='mean', coord='GSM', delay=48)
+        # clock angle
+        df_imf.loc[:, 'theta_Bt'] = np.degrees(np.arctan2(df_imf.By, df_imf.Bz))
+
+        # plot IMF data
         ax_IMF = ax.twinx()
-        if ax_IMF is not None:
-            marker='.'; linestyle='-'; markersize=2;
-#            ax_IMF.plot_date(df_imf.index.to_pydatetime(), df_imf.Bx, color='k',
-#                    marker=marker, linestyle=linestyle, markersize=markersize)
+        plot_param="Theta"    # change this accordingly
+        marker='.'; linestyle='-'; markersize=2;
+
+        if plot_param=="Bx":
+            ax_IMF.plot_date(df_imf.index.to_pydatetime(), df_imf.Bx, color='k',
+                    marker=marker, linestyle=linestyle, markersize=markersize)
+        if plot_param=="By":
             ax_IMF.plot_date(df_imf.index.to_pydatetime(), df_imf.By, color='g',
                     marker=marker, linestyle=linestyle, markersize=markersize, label="By")
-#            ax_IMF.plot_date(df_imf.index.to_pydatetime(), df_imf.Bz, color='b',
-#                    marker=marker, linestyle=linestyle, markersize=markersize, label="Bz")
-            lns = ax_IMF.get_lines()
-            ax_IMF.legend(lns,['By'], frameon=False, bbox_to_anchor=(0.98, 0.7),
+        if plot_param=="Bz":
+            ax_IMF.plot_date(df_imf.index.to_pydatetime(), df_imf.Bz, color='b',
+                    marker=marker, linestyle=linestyle, markersize=markersize, label="Bz")
+        if plot_param=="Theta":
+            ax_IMF.plot_date(df_imf.index.to_pydatetime(), df_imf.theta_Bt, color='k',
+                    marker=marker, linestyle=linestyle, markersize=markersize)
+        lns = ax_IMF.get_lines()
+        #ax_IMF.legend(lns,['Bx', 'By', 'Bz'], frameon=False, fontsize='small', mode='expand')
+        if plot_param=="Theta":
+            ax_IMF.set_ylim([-150, 150])
+            ax_IMF.set_ylabel('IMF Theta ' + "[Degree]")
+            ax_IMF.legend(lns,[plot_param], frameon=False, bbox_to_anchor=(0.80, 0.2),
                     loc='center left', fontsize='medium')
-            #ax_IMF.legend(lns,['Bx', 'By', 'Bz'], frameon=False, fontsize='small', mode='expand')
-            ax_IMF.set_ylabel('IMF ' + "[nT]")
+        else:
             ax_IMF.set_ylim([-25, 25])
+            ax_IMF.set_ylabel('IMF ' + "[nT]")
             ax_IMF.locator_params(axis='y', nbins=4)
-            ax_IMF.axhline(y=0, color='k', linewidth=0.40, linestyle='--')
+            ax_IMF.legend(lns,[plot_param], frameon=False, bbox_to_anchor=(0.98, 0.7),
+                    loc='center left', fontsize='medium')
+
+        ax_IMF.axhline(y=0, color='k', linewidth=0.40, linestyle='--')
      
     if plot_both_wic_si:
         title = dtm.strftime("%Y/%m/%d")
@@ -97,12 +116,12 @@ def main():
     overlay_IMF = True        
     mlt_range = [9, 15]
     mlat_range = [70, 85]
-    #param = "mlt"     # parameter to plot
-    param = "mlat"
+    param = "mlt"     # parameter to plot
+    #param = "mlat"
     #param = "intensity"
     fig_path = "../plots/track_spot/"
     #fig_name = "max_point_" + param + ".png"
-    fig_name = "max_point_" + param + "_with_By.png"
+    fig_name = "max_point_" + param + "_with_theta.png"
     dtm = dt.datetime(2002, 3, 18, 16, 02)
     stm = dt.datetime(2002, 3, 18, 15, 00)
     etm = dt.datetime(2002, 3, 18, 17, 20)
