@@ -40,6 +40,28 @@ def read_wic_si_data(dtm, read_si=True, read_wic=False):
 
     return fname_image, data_dict
 
+def find_filenames(stm, etm, read_si=True, read_wic=False):
+    import glob
+    import datetime as dt
+
+    dtm = stm
+    fnames = []
+    dtms = []
+    while(dtm<=etm):
+        if read_si:
+            fname_image = "../from_harald_frey/IMF12LSI_2002_0318_" + dtm.strftime("%H%M") + "*.sav"
+        if read_wic:
+            fname_image = "../from_harald_frey/IMFHWIC_2002_0318_" + dtm.strftime("%H%M") + "*.sav"
+        try:
+            fname = glob.glob(fname_image)[0]
+            fnames.append(fname)
+            dtms.append(dtm)
+        except:
+            pass
+        dtm = dtm + dt.timedelta(minutes=1)
+        
+    return dtms, fnames
+
 def find_max_intensity_point(data, mlt_range=[8, 16],
                              mlat_range=[75, 85], plot_image=False):
     import cv2
@@ -77,28 +99,6 @@ def find_max_intensity_point(data, mlt_range=[8, 16],
         cbar = fig.colorbar(cax)
 
     return (maxval, maxloc)
-
-def find_filenames(stm, etm, read_si=True, read_wic=False):
-    import glob
-    import datetime as dt
-
-    dtm = stm
-    fnames = []
-    dtms = []
-    while(dtm<=etm):
-        if read_si:
-            fname_image = "../from_harald_frey/IMF12LSI_2002_0318_" + dtm.strftime("%H%M") + "*.sav"
-        if read_wic:
-            fname_image = "../from_harald_frey/IMFHWIC_2002_0318_" + dtm.strftime("%H%M") + "*.sav"
-        try:
-            fname = glob.glob(fname_image)[0]
-            fnames.append(fname)
-            dtms.append(dtm)
-        except:
-            pass
-        dtm = dtm + dt.timedelta(minutes=1)
-        
-    return dtms, fnames
 
 def iteratively_plot_WIC_SI_image(stm, etm, read_si=True, read_wic=False,
                                   param="image", mark_max_intensity_point=True,
@@ -157,20 +157,24 @@ def plot_WIC_SI_image(dtm, read_si=True, read_wic=False,
     return fig
 
 # run the code
-#read_si=True; read_wic=False
-read_si=False; read_wic=True
-mlt_range = [9, 15]
-mlat_range = [70, 85]
-dtm = dt.datetime(2002, 3, 18, 16, 02) 
-stm = dt.datetime(2002, 3, 18, 15, 00) 
-etm = dt.datetime(2002, 3, 18, 17, 22) 
-fname, data = read_wic_si_data(dtm, read_si=read_si, read_wic=read_wic)
-#fig = plot_WIC_SI_image(dtm, read_si=read_si, read_wic=read_wic, param="image")
-#iteratively_plot_WIC_SI_image(stm, etm, read_si=read_si, read_wic=read_wic,
-#                              param="image", mark_max_intensity_point=True,
-#                              mlt_range=mlt_range, mlat_range=mlat_range)
-#find_max_intensity_point(data, mlt_range=mlt_range, mlat_range=mlat_range, plot_image=True)
-#fnames = find_filenames(stm, etm, read_si=True, read_wic=False)
+def main():
+    #read_si=True; read_wic=False
+    read_si=False; read_wic=True
+    mlt_range = [9, 15]
+    mlat_range = [70, 85]
+    dtm = dt.datetime(2002, 3, 18, 16, 02) 
+    stm = dt.datetime(2002, 3, 18, 15, 00) 
+    etm = dt.datetime(2002, 3, 18, 17, 22) 
+    fname, data = read_wic_si_data(dtm, read_si=read_si, read_wic=read_wic)
+    #fig = plot_WIC_SI_image(dtm, read_si=read_si, read_wic=read_wic, param="image")
+    #iteratively_plot_WIC_SI_image(stm, etm, read_si=read_si, read_wic=read_wic,
+    #                              param="image", mark_max_intensity_point=True,
+    #                              mlt_range=mlt_range, mlat_range=mlat_range)
+    #find_max_intensity_point(data, mlt_range=mlt_range, mlat_range=mlat_range, plot_image=True)
+    #fnames = find_filenames(stm, etm, read_si=True, read_wic=False)
 
-#plt.show()
+    #plt.show()
+
+if __name__ == "__main__":
+    main()
 
