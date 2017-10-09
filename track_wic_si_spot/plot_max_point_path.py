@@ -57,12 +57,21 @@ def plot_max_point_path(stm, etm, read_si=True, read_wic=False, param="mlt",
         sys.path.append('/home/muhammad/Documents/Important/RISRpy/RISR_06222015/codes')
         from read_sw_imf import ace_read
         df_imf, df_sw =  ace_read(stm, etm, res=0, how='mean', coord='GSM', delay=48)
+
         # clock angle
         df_imf.loc[:, 'theta_Bt'] = np.degrees(np.arctan2(df_imf.By, df_imf.Bz))
 
+        # dynamic pressure
+        mp = 1.6726219 * 1e-27  # kg
+        df_sw.loc[:, 'Pdyn'] = (df_sw.Np * mp * 1e6) * (df_sw.Vx * 1e3)**2 * 1e+9
+        df_sw.loc[df_sw.Pdyn < 0, 'Pdyn'] = np.nan
+        df_sw.dropna(how='any', inplace=True)
+
         # plot IMF data
         ax_IMF = ax.twinx()
-        plot_param="Theta"    # change this accordingly
+        #plot_param="Theta"    # change this accordingly
+        plot_param="Pdyn"
+        #plot_param="Bx"
         marker='.'; linestyle='-'; markersize=2;
 
         if plot_param=="Bx":
@@ -77,11 +86,19 @@ def plot_max_point_path(stm, etm, read_si=True, read_wic=False, param="mlt",
         if plot_param=="Theta":
             ax_IMF.plot_date(df_imf.index.to_pydatetime(), df_imf.theta_Bt, color='k',
                     marker=marker, linestyle=linestyle, markersize=markersize)
+        if plot_param=="Pdyn":
+            ax_IMF.plot_date(df_sw.index.to_pydatetime(), df_sw.Pdyn, color='k',
+                    marker=marker, linestyle=linestyle, markersize=markersize)
         lns = ax_IMF.get_lines()
         #ax_IMF.legend(lns,['Bx', 'By', 'Bz'], frameon=False, fontsize='small', mode='expand')
         if plot_param=="Theta":
             ax_IMF.set_ylim([-150, 150])
             ax_IMF.set_ylabel('IMF Theta ' + "[Degree]")
+            ax_IMF.legend(lns,[plot_param], frameon=False, bbox_to_anchor=(0.80, 0.2),
+                    loc='center left', fontsize='medium')
+        elif plot_param=="Pdyn":
+            ax_IMF.set_ylim([10, 25])
+            ax_IMF.set_ylabel('Pdyn ' + "[nPa]")
             ax_IMF.legend(lns,[plot_param], frameon=False, bbox_to_anchor=(0.80, 0.2),
                     loc='center left', fontsize='medium')
         else:
@@ -115,14 +132,15 @@ def main():
     plot_both_wic_si=False
     overlay_IMF = True        
     mlt_range = [9, 15]
-    mlat_range = [70, 85]
+    mlat_range = [70, 89]
     param = "mlt"     # parameter to plot
     #param = "mlat"
     #param = "intensity"
     fig_path = "../plots/track_spot/"
     #fig_name = "max_point_" + param + ".png"
-    fig_name = "max_point_" + param + "_with_theta.png"
-    dtm = dt.datetime(2002, 3, 18, 16, 02)
+    #fig_name = "max_point_" + param + "_with_theta.png"
+    #fig_name = "max_point_" + param + "_with_Bx.png"
+    fig_name = "max_point_" + param + "_with_Pdyn.png"
     stm = dt.datetime(2002, 3, 18, 15, 00)
     etm = dt.datetime(2002, 3, 18, 17, 20)
     fig, ax = plot_max_point_path(stm, etm, read_si=read_si, read_wic=read_wic,
