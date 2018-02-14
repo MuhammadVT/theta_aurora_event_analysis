@@ -106,7 +106,8 @@ class MapConv(object):
     import matplotlib.cm as cm
 
     def __init__(self, start_time, mobj=None, ax=None, end_time=None,
-                 hemi='north', maxVelScale=1000.0, min_vel=0.0, grid_type='grd',
+                 hemi='north', vec_len_factor=2, maxVelScale=1000.0,
+                 min_vel=0.0, grid_type='grd',
                  map_type='map'):
         from davitpy.pydarn.sdio import sdDataOpen
         import matplotlib as mpl
@@ -114,7 +115,7 @@ class MapConv(object):
         # set up some initial parameters
         self.radEarth = 6371.0
         # This is used to change the length of the vector on the plot
-        self.lenFactor = 500.0
+        self.lenFactor = vec_len_factor
         self.radEarthMtrs = self.radEarth * 1000.0
         self.maxVelPlot = maxVelScale
         self.min_vel = min_vel
@@ -305,7 +306,9 @@ class MapConv(object):
 
         for nn, nn_mlats in enumerate(mlats_plot):
             # calculate stuff for plotting such as vector length, azimuth etc
-            vec_len = (vels_plot[nn] * self.lenFactor / self.radEarth) / 1000.0
+            #vec_len = (vels_plot[nn] * self.lenFactor / self.radEarth) / 1000.0
+            vec_len = self.lenFactor*np.deg2rad(vels_plot[nn] / 1000.0)
+            
             end_lat = np.arcsin(np.sin(np.deg2rad(nn_mlats)) * np.cos(vec_len) +
                                 np.cos(np.deg2rad(nn_mlats)) * np.sin(vec_len) *
                                 np.cos(np.deg2rad(azms_plot[nn])))
@@ -825,7 +828,8 @@ class MapConv(object):
         vel_azm = self.mapData.model.kvect
 
         for nn, nn_mlats in enumerate(mlats_plot):
-            vec_len = vel_mag[nn] * self.lenFactor / self.radEarth / 1000.0
+            #vec_len = vel_mag[nn] * self.lenFactor / self.radEarth / 1000.0
+            vec_len = self.lenFactor*np.deg2rad(vel_mag[nn] / 1000.0)
             end_lat = np.arcsin(np.sin(np.deg2rad(nn_mlats)) * np.cos(vec_len) +
                                np.cos(np.deg2rad(nn_mlats)) * np.sin(vec_len) *
                                np.cos(np.deg2rad(vel_azm[nn])))
@@ -870,6 +874,8 @@ class MapConv(object):
 
     def overlayMapFitVel(self, pltColBar=True, overlayRadNames=True,
                          annotateTime=True, colorBarLabelSize=15.0,
+                         marker_size=10.0, alpha=0.7, zorder=5.0,
+                         edgecolor='none', cbar_shrink=0.6,
                          colMap=cm.jet, label_style="web"):
         """Overlay fitted velocity vectors from the map data
         
@@ -925,7 +931,8 @@ class MapConv(object):
         self.mapFitPltVec = []
 
         for nn, nn_mlats in enumerate(mlats_plot):
-            vec_len = vel_mag[nn] * self.lenFactor / self.radEarth / 1000.0
+            #vec_len = vel_mag[nn] * self.lenFactor / self.radEarth / 1000.0
+            vec_len = self.lenFactor*np.deg2rad(vel_mag[nn] / 1000.0)
             end_lat = np.arcsin(np.sin(np.deg2rad(nn_mlats)) * np.cos(vec_len) +
                                np.cos(np.deg2rad(nn_mlats)) * np.sin(vec_len) *
                                np.cos(np.deg2rad(vel_azm[nn])))
@@ -943,23 +950,25 @@ class MapConv(object):
             x_vec_end, y_vec_end = self.mObj(end_lon, end_lat, coords='mag')
 
             self.mapFitPltStrt.append(self.mObj.scatter(x_vec_strt, y_vec_strt, 
-                                                        c=vel_mag[nn], s=10.0,
+                                                        c=vel_mag[nn], s=marker_size,
                                                         vmin=self.min_vel,
                                                         vmax=self.maxVelPlot, 
-                                                        alpha=0.7, cmap=colMap,
-                                                        zorder=5.0,
-                                                        edgecolor='none'))
+                                                        alpha=alpha, cmap=colMap,
+                                                        zorder=zorder,
+                                                        edgecolor=edgecolor))
 
             map_color = colMap(norm(vel_mag[nn]))
             self.mapFitPltVec.append(self.mObj.plot([x_vec_strt, x_vec_end],
                                                     [y_vec_strt, y_vec_end], 
+                                                    alpha=alpha,
+                                                    zorder=zorder,
                                                     color=map_color))
 
         # Check and overlay colorbar
         if pltColBar:
             cbar = mpl.pyplot.colorbar(self.mapFitPltStrt[0],
                                        orientation='vertical',
-                                       shrink=0.6)
+                                       shrink=cbar_shrink)
             vlabel = "Velocity [m/s]" if label_style == "web" else \
                      "v [$m s^{-1}$]"
             cbar.set_label(vlabel, size=colorBarLabelSize)
