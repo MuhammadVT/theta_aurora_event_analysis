@@ -126,11 +126,11 @@ def main():
         if overlay_DMSP_data:
             for DMSP_sat_num in DMSP_sat_nums:
                 DMSP_obj = DMSP_sat(dtm, DMSP_sat_num)
-                DMSP_obj.overlay_data(mobj, ax,
-                                      interval=2*60, velscl=3*111.,
-                                      vec_cmap=vec_cmap,
-                                      vel_scale=[0, 1000.],
-                                      quality_flag=False)
+                DMSP_obj.overlay_ssies_data(mobj, ax,
+                                            interval=2*60, velscl=3*111.,
+                                            vec_cmap=vec_cmap,
+                                            vel_scale=[0, 1000.],
+                                            quality_flag=False)
         
         # Overlay TIMED-GUVI
         if overlay_TIMEDGUVI_data:
