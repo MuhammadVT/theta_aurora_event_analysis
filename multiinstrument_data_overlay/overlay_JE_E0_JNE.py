@@ -29,7 +29,7 @@ def overlay_guvi_JE_E0_JNE(mobj, stime, etime, orbit,
 
 def overlay_ssj_JE_E0_JNE(mobj, stime, etime, sat_num,
                           color_norm=None, cmap="jet", 
-                          overlay_param="JEe", aacgm=True):
+                          overlay_param="JEe", aacgm=False):
     """Plots energy flux, average energy, and number flux from
        DMSP SSJ data on a map"""
     
@@ -62,13 +62,18 @@ def overlay_ssj_JE_E0_JNE(mobj, stime, etime, sat_num,
         tmp_coords = mobj.coords
 
     df_var = df.loc[(df.datetime >= stime) & (df.datetime <= etime), overlay_param]
+    if overlay_param == "JEe":
+        df_var = df_var / (6.2415 * 1.e11)     # eV to erg
+    if overlay_param == "AvgEe":
+        df_var = df_var / (1.e3)     # eV to keV
+    if overlay_param == "JNEe":
+        df_var = df_var
 
     # plot the DMSP path
     x1s, y1s = mobj(df_lons, df_lats, coords=tmp_coords)
     mobj.scatter(x1s, y1s,
                  s=1.0, zorder=5, marker='o', color='gray',
                  edgecolors='face', linewidths=.5)
-
 
     # plot values at the time interval of interest
     x1, y1 = mobj(df_lon, df_lat, coords=tmp_coords)
@@ -77,6 +82,7 @@ def overlay_ssj_JE_E0_JNE(mobj, stime, etime, sat_num,
                             c=df_var.as_matrix(),
                             edgecolors='face', linewidths=.5,
                             norm=color_norm, cmap=cmap)
+
     return mappable
 
 
@@ -90,25 +96,27 @@ if __name__ == "__main__":
 
     #stime = dt.datetime(2002,3,18,17,24)
     #etime = dt.datetime(2002,3,18,17,40)
-    stime = dt.datetime(2002,3,18,16,15)
-    etime = dt.datetime(2002,3,18,16,58)
+    stime = dt.datetime(2002,3,18,16,25)
+    etime = dt.datetime(2002,3,18,17,05)
 
-    dmsp_sat_num = [13, 15]
+    dmsp_sat_num = [13]
     guvi_orbit = 1495
 
     cmap = "jet"
     coords = "mlt"
-    overlay_param="JNEe"
+    #overlay_param="JNEe"
+    #overlay_param="JEe"
+    overlay_param="AvgEe"
     dmsp_aacgm=False
     if overlay_param == "JEe":
-        color_norm = colors.LogNorm(vmin=0.1, vmax=1.e2)
-        guvi_cbar_label = "GUVI Flux " + r"(ergs/s/cm$^{2}$)"
+        color_norm = colors.LogNorm(vmin=0.1, vmax=0.5*1.e2)
+        guvi_cbar_label = "Energy Flux " + r"(ergs/s/cm$^{2}$)"
     if overlay_param == "AvgEe":
         color_norm = colors.LogNorm(vmin=0.5, vmax=15)
-        guvi_cbar_label = "GUVI E0 (KeV)"
+        guvi_cbar_label = "Ave Energy (keV)"
     if overlay_param == "JNEe":
         color_norm = colors.LogNorm(vmin=1.e7, vmax=1.e10)
-        guvi_cbar_label = "GUVI Number Flux " + "r(#/s/cm$^{2}$)"
+        guvi_cbar_label = "Number Flux " + "r(#/s/cm$^{2}$)"
 
     # Plot a map
     fig, ax = plt.subplots(figsize=(15,15))
@@ -130,14 +138,16 @@ if __name__ == "__main__":
     cbar = fig.colorbar(mappable=guvi_mappable, ax=ax, shrink=0.6)
     cbar.set_label(guvi_cbar_label, size=15.)
     
-    title = stime.strftime("%b %d, %Y")  +   "       Orbit: " + str(guvi_orbit)
-    ax.set_title(title)
+    title = stime.strftime("%b %d, %Y    %H:%M -- ") + etime.strftime("%H:%M UT") +\
+            "    GUVI Orbit : " + str(guvi_orbit) +\
+            ",  DMSP " + ",".join(["F"+str(x) for x in dmsp_sat_num])
+    ax.set_title(title, fontsize=15)
 
     #title = stime.strftime("%b%d, %Y") + "    DMSP F" + str(sat_num)
 
     # save fig
     fig_dir = "../plots/multiinstrument_data_overlay/JE_E0_JNE/"
-    fig_name = "APEX_" + overlay_param + "_" + stime.strftime("%Y%m%d.%H%M%S") + "_" +\
+    fig_name = overlay_param + "_" + stime.strftime("%Y%m%d.%H%M%S") + "_" +\
                etime.strftime("%Y%m%d.%H%M%S") + ".png"
 
     fig.savefig(fig_dir + fig_name, dpi=200, bbox_inches="tight")
