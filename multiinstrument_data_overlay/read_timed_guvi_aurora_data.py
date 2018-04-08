@@ -9,8 +9,6 @@ def read_guvi_aurora_L3_data(stime, etime, orbit, file_name=None):
     import numpy as np
     import pandas as pd
 
-    stime = dt.datetime(2002, 3, 18)
-
     if file_name is None:
         file_dir = "../data/timed_guvi/" + stime.strftime("%Y%m%d") + "/"
         file_name = file_dir + "guvi_aurora_" + stime.strftime("%Y") +\
