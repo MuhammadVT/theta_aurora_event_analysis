@@ -17,17 +17,21 @@ def main():
     from track_max_point import find_filenames
 
     overlay_TIMEDGUVI_data=False
-    overlay_IMAGE_data=True
+    overlay_IMAGE_data=False
     IMAGE_datatype="WIC"
     interpolate_IMAGE_data=True
+
     overlay_SuperDARN_data=True
     overlay_MapFitVel=True
     overlay_CnvCntrs=False
     overlay_HMB=False
     overlay_DMSP_data=False
+
+    overlay_magmeter = True
     DMSP_sat_nums=[13]
     #DMSP_sat_nums=[14, 15]
     coords = "mlt"
+
     vec_cmap = cm.jet
 
     # Plot iteratively
@@ -57,8 +61,11 @@ def main():
 
 #################################################################
 
-    stm = dt.datetime(2002,3,18,16,20)
-    etm = dt.datetime(2002,3,18,16,42)
+    #stm = dt.datetime(2002,3,18,16,20)
+    #etm = dt.datetime(2002,3,18,16,42)
+
+    stm = dt.datetime(2002,3,18,15,50)
+    etm = dt.datetime(2002,3,18,17,0)
 
     dtms, fnames = find_filenames(stm, etm, read_si=read_si, read_wic=read_wic)
     #dtms = [dt.datetime(2002,3,18,16,41)]
@@ -147,10 +154,27 @@ def main():
                          plotTitle=False, cbar_shrink=0.6, titleString=None,
                          coords=coords, timedguviCmap='gist_gray')
 
-        fdir ="../plots/multiinstrument_data_overlay/" + IMAGE_datatype + "/"
-        fname = "map_overlay_" + dtm.strftime("%H%M") +\
-                "_with_" + IMAGE_datatype
-                #"_with_TIMEDGUVI" 
+        # Overlay magnetometer data
+        from overlay_magnetometer import overlay_magnetometer_stations
+        from overlay_magnetometer import overlay_magnetometer_hvecs
+        if overlay_magmeter:
+            # Overlay magnetometer stations
+            overlay_magnetometer_stations(mobj, ax, dtm, station_label=False,
+                                          file_dir="../data/magnetometer/")
+            # Overlay magnetometer vectors
+            overlay_magnetometer_hvecs(mobj, ax, dtm, rot_90_clockwise=True,
+                                       vecscl=2.e3, zorder=5,
+                                       file_dir="../data/magnetometer/")
+
+        #ax.set_title(dtm.strftime("%b %d, %Y    %H:%M"))
+
+
+        #fdir ="../plots/multiinstrument_data_overlay/" + IMAGE_datatype + "/"
+        #        "_with_" + IMAGE_datatype
+        #        #"_with_TIMEDGUVI" 
+        fdir = "../plots/multiinstrument_data_overlay/magnetometer/"
+        #fname = "map_overlay_hvecs_current_" + dtm.strftime("%H%M")
+        fname = "hvecs_current_sdvel_" + dtm.strftime("%H%M")
         fig.savefig(fdir + fname, dpi=200)
 
 if __name__ == "__main__": 
