@@ -17,19 +17,23 @@ def main():
     from track_max_point import find_filenames
 
     overlay_TIMEDGUVI_data=False
-    overlay_IMAGE_data=False
+
+    overlay_IMAGE_data=True
     IMAGE_datatype="WIC"
+    wic_si_ratio = True
     interpolate_IMAGE_data=True
 
     overlay_SuperDARN_data=True
     overlay_MapFitVel=True
     overlay_CnvCntrs=False
     overlay_HMB=False
-    overlay_DMSP_data=False
 
     overlay_magmeter = True
-    DMSP_sat_nums=[13]
-    #DMSP_sat_nums=[14, 15]
+
+    overlay_DMSP_data=True
+    #DMSP_sat_nums=[13]
+    #DMSP_sat_nums=[15]
+    DMSP_sat_nums=[14, 15]
     coords = "mlt"
 
     vec_cmap = cm.jet
@@ -48,8 +52,8 @@ def main():
 #    etm = dt.datetime(2002,3,18,15,20)
 
 #    # Time interval where DMSP F14 and F15 is available
-#    stm = dt.datetime(2002,3,18,16,2)
-#    etm = dt.datetime(2002,3,18,16,6)
+    stm = dt.datetime(2002,3,18,16,2)
+    etm = dt.datetime(2002,3,18,16,6)
 
 #    # Time interval where DMSP F15 is available
 #    stm = dt.datetime(2002,3,18,16,8)
@@ -61,11 +65,11 @@ def main():
 
 #################################################################
 
-    #stm = dt.datetime(2002,3,18,16,20)
-    #etm = dt.datetime(2002,3,18,16,42)
+#    stm = dt.datetime(2002,3,18,16,20)
+#    etm = dt.datetime(2002,3,18,16,42)
 
-    stm = dt.datetime(2002,3,18,15,50)
-    etm = dt.datetime(2002,3,18,17,0)
+#    stm = dt.datetime(2002,3,18,15,50)
+#    etm = dt.datetime(2002,3,18,15,52)
 
     dtms, fnames = find_filenames(stm, etm, read_si=read_si, read_wic=read_wic)
     #dtms = [dt.datetime(2002,3,18,16,41)]
@@ -81,38 +85,51 @@ def main():
 
         # Overlay IMAGE data
         if overlay_IMAGE_data:
+            if wic_si_ratio:
+                IMAGE_wic_si_ratio = IMAGE_sat(dtm, wic_si_ratio=True)
+                IMAGE_wic_si_ratio.overlay_wic_si_ratio(mobj, param="image",
+                                                        gauss_filter=False,
+                                                        vmin=100., vmax=1000.,   # vmax is ignored here
+                                                        vmin_ratio=0., vmax_ratio=2.,
+                                                        alpha=0.3,
+                                                        zorder=3,
+                                                        cmap='bwr')
+                IMAGE_wic_si_ratio.add_cbar(fig, ax, shrink=0.6,
+                                            label="WIC/SI",
+                                            label_fontsize=15)
 
-            IMAGE_obj = IMAGE_sat(dtm, datatype=IMAGE_datatype)
-            IMAGE_obj.overlay_data(mobj, param="image",
-                                   interpolate_data=interpolate_IMAGE_data,
-                                   overlay_spot_only=False,
-                                   mark_max_intensity_point=True,
-                                   max_point_color='b',
-                                   max_point_size=30,
-                                   gauss_filter=False,
-                                   vmin=0, vmax=1000,
-                                   alpha=1.0, 
-                                   zorder=3,
-                                   cmap='gist_gray')
-            IMAGE_obj.add_cbar(fig, ax, shrink=0.6,
-                               label="Rayleigh (for " + IMAGE_datatype + " data)",
-                               label_fontsize=15)
+            else:
+                IMAGE_obj = IMAGE_sat(dtm, datatype=IMAGE_datatype)
+                IMAGE_obj.overlay_data(mobj, param="image",
+                                       interpolate_data=interpolate_IMAGE_data,
+                                       overlay_spot_only=False,
+                                       mark_max_intensity_point=True,
+                                       max_point_color='b',
+                                       max_point_size=30,
+                                       gauss_filter=False,
+                                       vmin=0, vmax=1000,
+                                       alpha=1.0, 
+                                       zorder=3,
+                                       cmap='gist_gray')
+                IMAGE_obj.add_cbar(fig, ax, shrink=0.6,
+                                   label="Rayleigh (for " + IMAGE_datatype + " data)",
+                                   label_fontsize=15)
 
-            IMAGE_obj = IMAGE_sat(dtm, datatype="SI")
-            IMAGE_obj.overlay_data(mobj, param="image",
-                                   interpolate_data=interpolate_IMAGE_data,
-                                   overlay_spot_only=True,
-                                   mark_max_intensity_point=True,
-                                   max_point_color='r',
-                                   max_point_size=30,
-                                   gauss_filter=False,
-                                   vmin=0, vmax=1000,
-                                   alpha=1.0, 
-                                   zorder=6,
-                                   cmap='brg')
-#            IMAGE_obj.add_cbar(fig, ax, shrink=0.6,
-#                               label="Rayleigh (for WIC data)",
-#                               label_fontsize=15)
+                IMAGE_obj = IMAGE_sat(dtm, datatype="SI")
+                IMAGE_obj.overlay_data(mobj, param="image",
+                                       interpolate_data=interpolate_IMAGE_data,
+                                       overlay_spot_only=True,
+                                       mark_max_intensity_point=True,
+                                       max_point_color='r',
+                                       max_point_size=30,
+                                       gauss_filter=False,
+                                       vmin=0, vmax=1000,
+                                       alpha=1.0, 
+                                       zorder=6,
+                                       cmap='brg')
+    #            IMAGE_obj.add_cbar(fig, ax, shrink=0.6,
+    #                               label="Rayleigh (for WIC data)",
+    #                               label_fontsize=15)
 
 
         # Overlay SuperDARN convection flows
@@ -132,12 +149,15 @@ def main():
         # Overlay DMSP
         if overlay_DMSP_data:
             for DMSP_sat_num in DMSP_sat_nums:
-                DMSP_obj = DMSP_sat(dtm, DMSP_sat_num)
+                DMSP_obj = DMSP_sat(dtm, DMSP_sat_num, data_type="ssies")
                 DMSP_obj.overlay_ssies_data(mobj, ax,
                                             interval=2*60, velscl=3*111.,
                                             vec_cmap=vec_cmap,
                                             vel_scale=[0, 1000.],
                                             quality_flag=False)
+                DMSP_obj = DMSP_sat(dtm, DMSP_sat_num, data_type="ssm")
+                DMSP_obj.overlay_ssm_data(mobj, ax, interval=2*60, velscl=1.e3,
+                                          rot_90_clockwise=True)
         
         # Overlay TIMED-GUVI
         if overlay_TIMEDGUVI_data:
@@ -174,7 +194,9 @@ def main():
         #        #"_with_TIMEDGUVI" 
         fdir = "../plots/multiinstrument_data_overlay/magnetometer/"
         #fname = "map_overlay_hvecs_current_" + dtm.strftime("%H%M")
-        fname = "hvecs_current_sdvel_" + dtm.strftime("%H%M")
+        #fname = "magmetorCurrent_sdvel_wicSiRatio_" + dtm.strftime("%H%M")
+        fname = "magmetorCurrent_sdvel_wicSiRatio_ssm_ssies_" + dtm.strftime("%H%M")
+        #fname = "magmetorCurrent_sdvel_ssm_ssies_" + dtm.strftime("%H%M")
         fig.savefig(fdir + fname, dpi=200)
 
 if __name__ == "__main__": 
