@@ -50,14 +50,12 @@ class DMSP_sat():
         bounds_flag = np.round(np.linspace(0.5, 4.5, 5))
         norm_flag = matplotlib.colors.BoundaryNorm(bounds_flag, cmap_flag.N)
     
-        verts = [[],[]]
-        tails_dmsp = []
         # drop NaN values for 'Vy', 'GLAT', and 'GLONG'
         df = self.data[['Vy', 'GLAT', 'GLONG', 'I']].dropna()
-        df_vys = df['Vy']
+        df_vys_tmp = df['Vy']
         df_pos  = df[['GLAT', 'GLONG']]
         df_Is = df['I']
-        df_vy = df_vys.loc[self.datetime.strftime("%Y%m%d%H%M%S"):\
+        df_vy = df_vys_tmp.loc[self.datetime.strftime("%Y%m%d%H%M%S"):\
                            (self.datetime+dt.timedelta(seconds=interval-1)).\
                            strftime("%Y%m%d%H%M%S")]
         df_lat = df_pos.loc[self.datetime.strftime("%Y%m%d%H%M%S"):\
@@ -86,6 +84,11 @@ class DMSP_sat():
                              timedelta(seconds=20*interval)).strftime("%Y%m%d%H%M%S"):\
                              (self.datetime+dt.timedelta(seconds=20*interval-1)).\
                              strftime("%Y%m%d%H%M%S"), 'GLONG']
+        df_vys = df_vys_tmp.loc[(self.datetime-dt.\
+                                 timedelta(seconds=20*interval)).strftime("%Y%m%d%H%M%S"):\
+                                 (self.datetime+dt.timedelta(seconds=20*interval-1)).\
+                                 strftime("%Y%m%d%H%M%S")]
+
         # plot the DMSP path
         if plot_path:
             for k in range(len(df_lats)):
@@ -94,9 +97,26 @@ class DMSP_sat():
                              s=1.0, zorder=5, marker='o', color='gray',
                              edgecolors='face', linewidths=.5)
 
-        # Plot all vectors along the path
-        #if plot_vecs_on_full_path:
+        if plot_vecs_on_full_path:
+            verts = [[],[]]
+            tails_dmsp = []
 
+            # Plot vectors along the full path
+            for k in range(len(df_lats)):
+                x1, y1 = mobj(df_lons[k], df_lats[k], coords='geo')
+                verts[0].append(x1)
+                verts[1].append(y1)
+                x2 = x1+df_vys[k]*velscl*(-1.0)*math.cos(the_vel)
+                y2 = y1+df_vys[k]*velscl*(-1.0)*math.sin(the_vel)
+                tails_dmsp.append(((x1,y1),(x2,y2)))
+        
+            lcoll = LineCollection(np.array(tails_dmsp),
+                                   linewidths=.6,
+                                   zorder=12, alpha=0.6, color="b")
+            ax.add_collection(lcoll)
+
+        verts = [[],[]]
+        tails_dmsp = []
         # plot the measurement points and velocity vectors at a specified time
         for k in range(len(df_lat)):
             x1, y1 = mobj(df_lon[k], df_lat[k], coords='geo')
@@ -131,6 +151,7 @@ class DMSP_sat():
     def overlay_ssm_data(self, mobj, ax, rot_clockwise=90,
                          interval=60, velscl=500.e3,
                          plot_path=False,
+                         plot_vecs_on_full_path=False,
                          correct_bias=False):
 
         """Overlays SSM data onto a map"""
@@ -141,10 +162,7 @@ class DMSP_sat():
         import numpy as np
         import pandas as pd
         from matplotlib.collections import LineCollection
-    
-    
-        verts = [[],[]]
-        tails_dmsp = []
+     
         df = self.data[['Date-time', 'Lat', 'Lon', 'Meas-ModY', 'Meas-ModZ']].dropna()
         df.set_index('Date-time', inplace=True)
 
@@ -179,7 +197,6 @@ class DMSP_sat():
         df_lon = df.loc[self.datetime.strftime("%Y%m%d%H%M%S"):\
                         (self.datetime+dt.timedelta(seconds=interval-1)).\
                         strftime("%Y%m%d%H%M%S"), 'Lon']
-
         try:
             xxs, yys = mobj(df_lon[0], df_lat[0], coords='geo')
             xxe, yye = mobj(df_lon[-1], df_lat[-1], coords='geo')
@@ -200,6 +217,14 @@ class DMSP_sat():
                          timedelta(seconds=20*interval)).strftime("%Y%m%d%H%M%S"):\
                          (self.datetime+dt.timedelta(seconds=20*interval-1)).\
                          strftime("%Y%m%d%H%M%S"), 'Lon']
+        df_Hs = df.loc[(self.datetime-dt.\
+                       timedelta(seconds=20*interval)).strftime("%Y%m%d%H%M%S"):\
+                       (self.datetime+dt.timedelta(seconds=20*interval-1)).\
+                       strftime("%Y%m%d%H%M%S"), "H"]
+        df_Hthetas = df.loc[(self.datetime-dt.\
+                            timedelta(seconds=20*interval)).strftime("%Y%m%d%H%M%S"):\
+                            (self.datetime+dt.timedelta(seconds=20*interval-1)).\
+                            strftime("%Y%m%d%H%M%S"), "theta_H_to_Zdir"]
 
         # plot the DMSP path
         if plot_path:
@@ -209,6 +234,26 @@ class DMSP_sat():
                              s=1.0, zorder=5, marker='o', color='gray',
                              edgecolors='face', linewidths=.5)
 
+        if plot_vecs_on_full_path:
+            verts = [[],[]]
+            tails_dmsp = []
+            theta_Hs = theta_y - df_Hthetas.as_matrix()
+            # Plot vectors along the full path
+            for k in range(len(df_lats)):
+                x1, y1 = mobj(df_lons[k], df_lats[k], coords='geo')
+                verts[0].append(x1)
+                verts[1].append(y1)
+                x2 = x1+df_Hs[k]*velscl*(+1.0)*math.cos(theta_Hs[k])
+                y2 = y1+df_Hs[k]*velscl*(+1.0)*math.sin(theta_Hs[k])
+                tails_dmsp.append(((x1,y1),(x2,y2)))
+        
+            lcoll = LineCollection(np.array(tails_dmsp),
+                                   linewidths=0.6, color="g",
+                                   zorder=12, alpha=0.6)
+            ax.add_collection(lcoll)
+
+        verts = [[],[]]
+        tails_dmsp = []
         # plot the measurement points and velocity vectors at a specified time
         for k in range(len(df_lat)):
             x1, y1 = mobj(df_lon[k], df_lat[k], coords='geo')
