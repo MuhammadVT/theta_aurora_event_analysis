@@ -10,9 +10,9 @@ class DMSP_sat():
 
         self.datetime = dtm
         self.sat_num = sat_num
-        self.file_dir = file_dir
 
         file_dir = file_dir + data_type + "/" + dtm.strftime("%Y%m%d") + "/"
+        self.file_dir = file_dir
         if data_type == "ssies":
             # Read DMSP ion drift data
             df=dmsp_ssies_read_utdallas(dt.datetime(dtm.year, dtm.month, dtm.day),
@@ -30,6 +30,8 @@ class DMSP_sat():
                            interval=60, velscl=500.e3,
                            vec_cmap=None,
                            vel_scale=[0, 1000.],
+                           plot_path=True,
+                           plot_vecs_on_full_path=False,
                            quality_flag=False):
 
         """Overlays data onto a map"""
@@ -67,12 +69,15 @@ class DMSP_sat():
         df_I = df_Is.loc[self.datetime.strftime("%Y%m%d%H%M%S"):\
                          (self.datetime+dt.timedelta(seconds=interval-1)).\
                          strftime("%Y%m%d%H%M%S")]
-        xxs, yys = mobj(df_lon[0], df_lat[0], coords='geo')
-        xxe, yye = mobj(df_lon[-1], df_lat[-1], coords='geo')
+        try:
+            xxs, yys = mobj(df_lon[0], df_lat[0], coords='geo')
+            xxe, yye = mobj(df_lon[-1], df_lat[-1], coords='geo')
+        except IndexError:
+            return
         the_x = math.atan2(yye-yys, xxe-xxs)
         the_vel = the_x - np.deg2rad(90)
 
-        # plot the DMSP path
+        # Get the locs along the full path over polar region
         df_lats = df_pos.loc[(self.datetime-dt.\
                              timedelta(seconds=20*interval)).strftime("%Y%m%d%H%M%S"):\
                              (self.datetime+dt.timedelta(seconds=20*interval-1)).\
@@ -81,11 +86,16 @@ class DMSP_sat():
                              timedelta(seconds=20*interval)).strftime("%Y%m%d%H%M%S"):\
                              (self.datetime+dt.timedelta(seconds=20*interval-1)).\
                              strftime("%Y%m%d%H%M%S"), 'GLONG']
-        for k in range(len(df_lats)):
-            x1s, y1s = mobj(df_lons[k], df_lats[k], coords='geo')
-            mobj.scatter(np.array(x1s), np.array(y1s),
-                         s=1.0, zorder=5, marker='o', color='gray',
-                         edgecolors='face', linewidths=.5)
+        # plot the DMSP path
+        if plot_path:
+            for k in range(len(df_lats)):
+                x1s, y1s = mobj(df_lons[k], df_lats[k], coords='geo')
+                mobj.scatter(np.array(x1s), np.array(y1s),
+                             s=1.0, zorder=5, marker='o', color='gray',
+                             edgecolors='face', linewidths=.5)
+
+        # Plot all vectors along the path
+        #if plot_vecs_on_full_path:
 
         # plot the measurement points and velocity vectors at a specified time
         for k in range(len(df_lat)):
@@ -118,8 +128,10 @@ class DMSP_sat():
     
         return
 
-    def overlay_ssm_data(self, mobj, ax, rot_90_clockwise=True,
-                         interval=60, velscl=500.e3):
+    def overlay_ssm_data(self, mobj, ax, rot_clockwise=90,
+                         interval=60, velscl=500.e3,
+                         plot_path=False,
+                         correct_bias=False):
 
         """Overlays SSM data onto a map"""
     
@@ -127,14 +139,28 @@ class DMSP_sat():
         import datetime as dt
         import math
         import numpy as np
+        import pandas as pd
         from matplotlib.collections import LineCollection
     
     
         verts = [[],[]]
         tails_dmsp = []
-        # drop NaN values for 'Vy', 'GLAT', and 'GLONG'
         df = self.data[['Date-time', 'Lat', 'Lon', 'Meas-ModY', 'Meas-ModZ']].dropna()
         df.set_index('Date-time', inplace=True)
+
+        # Remove duplicated indices
+        df = df[~df.index.duplicated(keep="first")]
+
+        # Correct the bias in SSM data
+        if correct_bias:
+            fln = "bias_corrected_mfr_" + self.datetime.strftime("%Y%m%d") +\
+                  "_F" + str(self.sat_num) + ".dat" 
+            dfc = pd.read_csv(self.file_dir+fln, index_col=0)
+            # Remove duplicated indices
+            dfc = dfc[~dfc.index.duplicated(keep="first")]
+            df.loc[pd.to_datetime(dfc.index), 'Meas-ModY'] = dfc.loc[:, 'Meas-ModY'].as_matrix()
+            df.loc[pd.to_datetime(dfc.index), 'Meas-ModZ'] = dfc.loc[:, 'Meas-ModZ'].as_matrix()
+
         df.loc[:, "H"] = np.sqrt(np.square(df['Meas-ModY'].as_matrix()) +\
                             np.square(df['Meas-ModZ'].as_matrix()))
         df.loc[:,"theta_H_to_Zdir"] = np.arctan2(df['Meas-ModZ'].as_matrix(),
@@ -153,14 +179,19 @@ class DMSP_sat():
         df_lon = df.loc[self.datetime.strftime("%Y%m%d%H%M%S"):\
                         (self.datetime+dt.timedelta(seconds=interval-1)).\
                         strftime("%Y%m%d%H%M%S"), 'Lon']
-        xxs, yys = mobj(df_lon[0], df_lat[0], coords='geo')
-        xxe, yye = mobj(df_lon[-1], df_lat[-1], coords='geo')
+
+        try:
+            xxs, yys = mobj(df_lon[0], df_lat[0], coords='geo')
+            xxe, yye = mobj(df_lon[-1], df_lat[-1], coords='geo')
+        except IndexError:
+            return
         theta_y = math.atan2(yye-yys, xxe-xxs)
         theta_H = theta_y - df_Htheta.as_matrix()
-        if rot_90_clockwise:
-            theta_H = theta_H - np.deg2rad(90)
 
-        # plot the DMSP path
+        # Rotate clockwise
+        theta_H = theta_H - np.deg2rad(rot_clockwise)
+
+        # Get the locs along the full path over polar region
         df_lats = df.loc[(self.datetime-dt.\
                          timedelta(seconds=20*interval)).strftime("%Y%m%d%H%M%S"):\
                          (self.datetime+dt.timedelta(seconds=20*interval-1)).\
@@ -169,11 +200,14 @@ class DMSP_sat():
                          timedelta(seconds=20*interval)).strftime("%Y%m%d%H%M%S"):\
                          (self.datetime+dt.timedelta(seconds=20*interval-1)).\
                          strftime("%Y%m%d%H%M%S"), 'Lon']
-        for k in range(len(df_lats)):
-            x1s, y1s = mobj(df_lons[k], df_lats[k], coords='geo')
-            mobj.scatter(np.array(x1s), np.array(y1s),
-                         s=1.0, zorder=5, marker='o', color='gray',
-                         edgecolors='face', linewidths=.5)
+
+        # plot the DMSP path
+        if plot_path:
+            for k in range(len(df_lats)):
+                x1s, y1s = mobj(df_lons[k], df_lats[k], coords='geo')
+                mobj.scatter(np.array(x1s), np.array(y1s),
+                             s=1.0, zorder=5, marker='o', color='gray',
+                             edgecolors='face', linewidths=.5)
 
         # plot the measurement points and velocity vectors at a specified time
         for k in range(len(df_lat)):
@@ -225,7 +259,7 @@ if __name__ == "__main__":
 
     if data_type == "ssm":
         DMSP_obj.overlay_ssm_data(mobj, ax, interval=60, velscl=1.e3,
-                                  rot_90_clockwise=True)
+                                  rot_clockwise=90)
 
     plt.show()
 
